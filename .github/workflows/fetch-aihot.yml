@@ -1,7 +1,7 @@
 name: Fetch AI HOT Daily Report
 
 on:
-  workflow_dispatch: # 手动触发，也用于验证配置
+  workflow_dispatch: # 手动触发，也用于验证
   schedule:
     - cron: '15 0 * * *' # 每天 UTC 00:15 = 北京时间 08:15
 
@@ -11,6 +11,7 @@ permissions:
 jobs:
   fetch:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
@@ -18,63 +19,65 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create data directory
-        run: mkdir -p data/archive
-
-      - name: Fetch latest daily report
+      - name: Fetch latest daily report (API v1)
         id: fetch
         run: |
-          # 网站新规则：定时任务用「能识别的非浏览器 UA」，不要伪装 Mozilla/Chrome/Safari
           UA="kindle-clock/1.0 (+https://github.com/${{ github.repository }})"
 
-          # 先写临时文件，成功后再替换，避免损坏现有数据
-          # 正常响应 <1s；被边缘防护挂起(tarpit)时连接会静默停滞。
-          # --speed-time/--speed-limit: 连续 8s 速度低于 100B/s 视为被挂起，立刻掐掉换下一次重试，
-          # 比干等 --max-time 快得多。--max-time 20 只是兜底硬上限。
-          HTTP_STATUS=$(curl -s -o data/daily.json.tmp -w "%{http_code}" \
-            --connect-timeout 10 --max-time 20 \
+          # 2026-10-31 起旧接口 /api/public/* 已停用，改用 /api/v1/dailies/latest
+          # 正常响应 <1s；被边缘防护挂起(tarpit)时连接会静默停滞，
+          # --speed-time/--speed-limit 连续 8s 低于 100B/s 即掐断重试
+          HTTP_STATUS=$(curl -s -o /tmp/latest.json -w "%{http_code}" \
+            --connect-timeout 10 --max-time 30 \
             --speed-time 8 --speed-limit 100 \
             --retry 5 --retry-delay 3 --retry-all-errors \
-            -H "User-Agent: $UA" \
-            https://aihot.virxact.com/api/public/daily) || HTTP_STATUS="000"
+            -L -H "User-Agent: $UA" \
+            https://aihot.news/api/v1/dailies/latest) || HTTP_STATUS="000"
 
           if [ "$HTTP_STATUS" != "200" ]; then
             echo "API returned $HTTP_STATUS, skipping"
+            echo "success=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # v1 把日报包在 {schemaVersion, report} 里，且来源字段改名了：
+          #   source.name  -> sourceName
+          #   links.original -> sourceUrl
+          # 这里还原成 index.html 期望的旧结构
+          cat > /tmp/transform.jq <<'JQ'
+          def srcname: (.source | if type == "object" then (.name // "") else (. // "") end);
+          def srcurl: (.links.original // .links.aihot // "");
+          .report
+          | .sections = ((.sections // []) | map(.items = ((.items // []) | map(. + {sourceName: srcname, sourceUrl: srcurl}))))
+          | .flashes  = ((.flashes  // []) | map(. + {sourceName: srcname, sourceUrl: srcurl}))
+          JQ
+
+          if ! jq -f /tmp/transform.jq /tmp/latest.json > data/daily.json.tmp; then
+            echo "jq transform failed"
+            rm -f data/daily.json.tmp
+            echo "success=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # 结构自检：日期必须存在，栏目不能为空，否则不覆盖线上数据
+          if ! jq -e '(.date | type == "string") and ((.sections | length) > 0)' data/daily.json.tmp > /dev/null; then
+            echo "Transformed data failed validation, keeping existing daily.json"
             rm -f data/daily.json.tmp
             echo "success=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
           mv data/daily.json.tmp data/daily.json
+          echo "Fetched daily.json for $(jq -r '.date' data/daily.json)"
           echo "success=true" >> $GITHUB_OUTPUT
-          echo "Fetched daily.json successfully"
 
-      - name: Archive today's report
+      - name: Archive report by its own date
         if: steps.fetch.outputs.success == 'true'
         run: |
-          TODAY=$(date -u +%Y-%m-%d)
-          cp data/daily.json data/archive/$TODAY.json
-          echo "Archived to data/archive/$TODAY.json"
-
-      - name: Fetch dailies index (最近 30 期列表)
-        if: steps.fetch.outputs.success == 'true'
-        run: |
-          UA="kindle-clock/1.0 (+https://github.com/${{ github.repository }})"
-
-          HTTP_STATUS=$(curl -s -o data/dailies-index.json.tmp -w "%{http_code}" \
-            --connect-timeout 10 --max-time 20 \
-            --speed-time 8 --speed-limit 100 \
-            --retry 5 --retry-delay 3 --retry-all-errors \
-            -H "User-Agent: $UA" \
-            'https://aihot.virxact.com/api/public/dailies?take=30') || HTTP_STATUS="000"
-
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "dailies-index API returned $HTTP_STATUS, skipping"
-            rm -f data/dailies-index.json.tmp
-          else
-            mv data/dailies-index.json.tmp data/dailies-index.json
-            echo "Fetched dailies-index.json"
-          fi
+          D=$(jq -r '.date' data/daily.json)
+          mkdir -p data/archive
+          cp data/daily.json "data/archive/$D.json"
+          echo "Archived to data/archive/$D.json"
 
       - name: Commit if changed
         if: steps.fetch.outputs.success == 'true'
@@ -83,4 +86,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/
           git diff --cached --quiet && echo "No changes" || \
-            (git commit -m "chore: update AI HOT daily $(date -u +%Y-%m-%d)" && git push)
+            (git commit -m "chore: update AI HOT daily $(jq -r '.date' data/daily.json)" && git push)
