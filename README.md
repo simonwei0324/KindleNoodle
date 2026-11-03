@@ -5,7 +5,9 @@
 
 一个纯 HTML 单文件 Web App，专为 Kindle Paperwhite 的 E-ink 屏幕设计，让闲置的 Kindle 在桌面上重新发光。
 
-🔗 **在线体验**：[kindlenoodle.com](https://kindlenoodle.com)
+🔗 **在线体验**：https://simonwei0324.github.io/KindleNoodle/ 
+
+历史参考：[kindlenoodle.com](https://kindlenoodle.com)
 
 ![封面](img/kindle_noodle_2_v2.png)
 
