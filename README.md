@@ -5,7 +5,7 @@
 
 一个纯 HTML 单文件 Web App，专为 Kindle Paperwhite 的 E-ink 屏幕设计，让闲置的 Kindle 在桌面上重新发光。
 
-🔗 **在线体验**：https://simonwei0324.github.io/KindleNoodle/ 
+🔗 **在线体验**：https://simonwei0324.github.io/KindleNoodle/
 
 历史参考：[kindlenoodle.com](https://kindlenoodle.com)
 
@@ -36,14 +36,14 @@ Kindle 终于干回了它的老本行 —— 给泡面盖盖子。
 一键跳转微信读书，让 Kindle 重新成为阅读工具。
 
 **📰 AI 日报**
-每天自动更新 AI 领域的最新动态，数据来源于 [AI HOT](https://aihot.virxact.com)。
+每天自动更新 AI 领域的最新动态，数据来源于 [AI HOT](https://aihot.news)。
 
 ---
 
 ## 📱 如何使用
 
 1. 打开 Kindle 的「体验版浏览器」
-2. 在地址栏输入 `kindlenoodle.com`
+2. 在地址栏输入 `simonwei0324.github.io/KindleNoodle`
 3. 在 Kindle 搜索栏输入 `~ds` 开启屏幕常亮
 4. 放在桌面上，开始享用
 
@@ -78,12 +78,12 @@ Kindle 终于干回了它的老本行 —— 给泡面盖盖子。
 KindleNoodle/
 ├── index.html              # 整个 App（单文件架构）
 ├── data/
-│   └── daily.json          # AI 日报数据（每日自动更新）
+│   ├── daily.json          # AI 日报数据（每日自动更新）
+│   └── archive/            # 历史日报归档
 ├── img/                    # 图片资源
-├── .github/
-│   └── workflows/
-│       └── fetch-aihot.yml # GitHub Actions 自动抓取日报
-└── CNAME                   # 自定义域名配置
+└── .github/
+    └── workflows/
+        └── fetch-aihot.yml # GitHub Actions 自动抓取日报
 ```
 
 ---
@@ -91,11 +91,10 @@ KindleNoodle/
 ## 🔄 AI 日报自动更新机制
 
 ```
-cron-job.org（每天早上 8:15 北京时间）
-    ↓ 调用 GitHub API 触发 workflow
-GitHub Actions 启动
+GitHub Actions 定时任务（每天早上 8:15 北京时间）
     ↓ 从 AI HOT API 抓取最新日报
-data/daily.json 自动更新
+    ↓ 转换为前端所需格式并校验
+data/daily.json 自动更新，同时归档到 data/archive/
     ↓ GitHub Pages 自动部署
 Kindle 刷新页面即可看到最新内容
 ```
@@ -106,9 +105,9 @@ Kindle 刷新页面即可看到最新内容
 
 - **前端**：纯 HTML + CSS + JavaScript（单文件，无框架依赖）
 - **设计**：Figma → Figma MCP → Claude Code
-- **部署**：GitHub Pages + Cloudflare（DNS + Analytics）
-- **自动化**：GitHub Actions + cron-job.org
-- **数据源**：[AI HOT API](https://aihot.virxact.com)
+- **部署**：GitHub Pages
+- **自动化**：GitHub Actions（schedule 定时触发）
+- **数据源**：[AI HOT API](https://aihot.news)
 
 ---
 
@@ -122,7 +121,9 @@ AI 完成了大约 60-70% 的初稿工作，剩下的 30-40%（品味判断、�
 
 ## 📊 隐私说明
 
-本项目使用 Cloudflare Web Analytics 收集匿名访问统计数据。该服务不使用 Cookie，不收集任何个人身份信息，符合 GDPR 规范。
+页面本身不收集任何用户数据，也不使用 Cookie。
+
+原版部署曾接入 Cloudflare Web Analytics 统计匿名访问量；当前这份 fork 部署在 GitHub Pages 上，未接入任何第三方统计服务。
 
 ---
 
@@ -137,3 +138,5 @@ MIT
 **正号ZH**
 
 外企产品设计师 | 对世界保持好奇，正在积极拥抱AI～
+
+本项目为上述原作的个人部署版本，遵循 MIT 协议并保留原作者署名。
