@@ -1,7 +1,9 @@
 name: Fetch AI HOT Daily Report
 
 on:
-  workflow_dispatch: # 由外部 cron-job.org 触发，不依赖 GitHub 自带定时
+  workflow_dispatch: # 手动触发，也用于验证配置
+  schedule:
+    - cron: '15 0 * * *' # 每天 UTC 00:15 = 北京时间 08:15
 
 permissions:
   contents: write
