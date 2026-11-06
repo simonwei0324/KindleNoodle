@@ -1948,7 +1948,10 @@
       { text: '你的时间有限，别浪费在过别人的生活上。', author: '乔布斯' }
     ];
 
+    var quoteShown = false;
+
     function setQuote(text, author) {
+      quoteShown = true;
       var bodyEl = document.getElementById('quote-body');
       var wrapEl = bodyEl.parentNode;
       var authorEl = document.getElementById('quote-author');
@@ -1968,22 +1971,32 @@
     }
 
     function fetchQuote() {
+      quoteShown = false;
+      // 看门狗：Kindle 老式浏览器不支持 xhr.timeout，请求挂住时
+      // ontimeout 永远不会触发，语录区会一直空白。这里用 setTimeout
+      // 独立兜底，6 秒内没拿到结果就先显示本地备用语录。
+      var watchdog = setTimeout(function() {
+        if (!quoteShown) { useFallbackQuote(); }
+      }, 6000);
       var xhr = new XMLHttpRequest();
       xhr.open('GET', 'https://v1.hitokoto.cn/', true);
-      xhr.timeout = 5000;
+      try { xhr.timeout = 5000; } catch(e) {}
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
+          clearTimeout(watchdog);
           if (xhr.status === 200) {
             try {
               var data = JSON.parse(xhr.responseText);
-              var author = data.from_who || data.from || '';
-              setQuote(data.hitokoto, author);
+              if (data && data.hitokoto) {
+                var author = data.from_who || data.from || '';
+                setQuote(data.hitokoto, author);
+              } else { useFallbackQuote(); }
             } catch(e) { useFallbackQuote(); }
           } else { useFallbackQuote(); }
         }
       };
-      xhr.ontimeout = function() { useFallbackQuote(); };
-      xhr.onerror = function() { useFallbackQuote(); };
+      xhr.ontimeout = function() { clearTimeout(watchdog); useFallbackQuote(); };
+      xhr.onerror = function() { clearTimeout(watchdog); useFallbackQuote(); };
       xhr.send();
     }
 
@@ -2007,6 +2020,7 @@
       function scheduleNext() {
         setTimeout(function() {
           if (currentTab === 0) { forceEinkRefresh(function() {}); }
+          fetchQuote();   // 顺带换一条语录（接口失败会走本地备用，不会空白）
           scheduleNext();
         }, msUntilNext());
       }
