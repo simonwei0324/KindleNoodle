@@ -898,7 +898,7 @@
     <!-- Screen 1: Brand Reveal (original layout) -->
     <div id="ob-s1" class="ob-screen">
       <div class="ob-s1-illus" style="padding-top:16px;">
-        <img src="img/kindle_noodle_2_v2.png" alt="Kindle Noodle">
+        <img data-src="img/kindle_noodle_2_v2.png" alt="Kindle Noodle">
       </div>
       <div style="-webkit-flex-shrink:0;flex-shrink:0;text-align:center;padding:0 48px;">
         <div style="font-size:64px;font-weight:900;color:#000;letter-spacing:-1px;line-height:1.05;">Kindle Noodle</div>
@@ -1113,7 +1113,7 @@
             <div class="pomo-subtitle">选择一个节奏，然后开始专注</div>
           </div>
           <div class="pomo-header-img">
-            <img src="img/pomo-tomato.png" alt="">
+            <img data-src="img/pomo-tomato.png" alt="">
           </div>
         </div>
         <div class="pomo-setup-spacer"></div>
@@ -1151,8 +1151,8 @@
       <div id="pomo-s1" class="pomo-page pomo-timer-screen pomo-focus-mode" style="display:none">
         <div class="pomo-top-section">
           <div class="pomo-illus">
-            <img id="pomo-illus-focus" src="img/pomo-focus.png" alt="">
-            <img id="pomo-illus-break" src="img/pomo-break.png" alt="" style="display:none">
+            <img id="pomo-illus-focus" data-src="img/pomo-focus.png" alt="">
+            <img id="pomo-illus-break" data-src="img/pomo-break.png" alt="" style="display:none">
           </div>
           <div class="pomo-wave-container">
             <div class="pomo-wave-gray">
@@ -1251,7 +1251,7 @@
             <div class="noodle-subtitle">倒入热水，选好时间，把 Kindle 盖上去</div>
           </div>
           <div class="noodle-img-wrap">
-            <img src="img/kindle_noodle_1_v2.png" alt="">
+            <img data-src="img/kindle_noodle_1_v2.png" alt="">
           </div>
           <div class="noodle-actions">
             <div class="noodle-time-group">
@@ -1273,7 +1273,7 @@
             <div class="noodle-subtitle">Kindle 正在发挥它最大的价值</div>
           </div>
           <div class="noodle-img-wrap">
-            <img src="img/kindle_noodle_2_v2.png" alt="">
+            <img data-src="img/kindle_noodle_2_v2.png" alt="">
           </div>
           <div class="noodle-actions noodle-actions-center">
             <div class="btn-noodle-outline" style="margin-right:24px" onclick="cancelNoodle()">取消</div>
@@ -1288,7 +1288,7 @@
             <div class="noodle-subtitle">泡面到位，精神食粮也不能少</div>
           </div>
           <div class="noodle-img-wrap">
-            <img src="img/kindle_noodle_3_v2.png" alt="">
+            <img data-src="img/kindle_noodle_3_v2.png" alt="">
           </div>
           <div class="noodle-actions">
             <div class="btn-noodle-outline" style="margin-right:24px" onclick="resetNoodle()">再来一碗</div>
@@ -1385,8 +1385,8 @@
   </div>
 
   <!-- Clock Style Settings Panel -->
-  <img src="img/preview-flip.png" style="display:none">
-  <img src="img/preview-module.png" style="display:none">
+  <img data-src="img/preview-flip.png" style="display:none">
+  <img data-src="img/preview-module.png" style="display:none">
   <div id="clock-settings-panel">
     <div class="csp-sheet">
       <div class="csp-title">时钟样式设置</div>
@@ -2358,15 +2358,67 @@
         var first = REFRESH_TIMES[0];
         return (24 * 60 - nowMins + first[0] * 60 + first[1]) * 60000 - now.getSeconds() * 1000 - now.getMilliseconds();
       }
+      function trySafeReload() {
+        var probed = false;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', './data/daily.json?t=' + Date.now(), true);
+        xhr.timeout = 15000;
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4 && xhr.status === 200 && !probed) {
+            probed = true;
+            location.reload();   // 探测到网络可用才整体重载，避免把页面重载成浏览器错误页
+          }
+        };
+        xhr.ontimeout = function() {};
+        xhr.onerror = function() {};
+        xhr.send();
+      }
       function scheduleNext() {
         setTimeout(function() {
-          if (currentTab === 0) { forceEinkRefresh(function() {}); }
+          var now = new Date();
+          if (currentTab === 0) {
+            forceEinkRefresh(function() {});
+            if (now.getHours() < 12) { trySafeReload(); }   // 每天早上那次顺带自愈重载
+          }
           fetchQuote();   // 顺带换一条语录（接口失败会走本地备用，不会空白）
           scheduleNext();
         }, msUntilNext());
       }
       scheduleNext();
     })();
+
+    /* ── 延迟图片加载：首屏零图片请求，渲染稳定后再串行补载 ── */
+    (function loadDeferredImages() {
+      var list = document.querySelectorAll('img[data-src]');
+      var i = 0, started = false;
+      function next() {
+        if (i >= list.length) return;
+        var el = list[i++];
+        el.src = el.getAttribute('data-src');
+        var stepped = false;
+        function step() { if (!stepped) { stepped = true; setTimeout(next, 300); } }
+        el.onload = step;
+        el.onerror = step;
+        setTimeout(step, 8000);   // 单张 8 秒兜底，防止 Kindle 老浏览器不触发 onload 卡住队列
+      }
+      function start() {
+        if (started) return;
+        started = true;
+        next();
+      }
+      var obDone = true;
+      try { obDone = !!localStorage.getItem('kindle_ob_done'); } catch(e) {}
+      setTimeout(start, obDone ? 4000 : 200);   // 首次使用（引导页可见）时立即补载
+      var wrapper = document.getElementById('page-wrapper');
+      if (wrapper && wrapper.addEventListener) {
+        wrapper.addEventListener('click', start, false);   // 用户提前切页时立即补载
+      }
+    })();
+
+    /* ── 开机 10 秒后预取日报：成功写本地缓存，失败静默不影响页面 ── */
+    setTimeout(function() {
+      try { if (!dailyState.loaded && !dailyState.loading) fetchDailyData(); } catch(e) {}
+    }, 10000);
 
     /* ── Clock Style ────────────────────────────────────── */
     var CS_KEY = 'kindle_noodle_clock_style';
@@ -2827,6 +2879,60 @@
       renderDailyCurrentPage();
     }
 
+    function saveDailyCache() {
+      try { localStorage.setItem('kn_daily_cache', JSON.stringify({ t: Date.now(), data: dailyState.data })); } catch(e) {}
+    }
+
+    function showDailyCacheNote(msg) {
+      var page = document.getElementById('page-4');
+      if (!page) return;
+      var note = document.getElementById('daily-cache-note');
+      if (!note) {
+        note = document.createElement('div');
+        note.id = 'daily-cache-note';
+        note.style.cssText = 'padding:8px 12px;text-align:center;font-size:20px;color:#ABABAB;';
+        page.insertBefore(note, page.firstChild);
+      }
+      note.textContent = msg;
+    }
+
+    function clearDailyCacheNote() {
+      var n = document.getElementById('daily-cache-note');
+      if (n && n.parentNode) n.parentNode.removeChild(n);
+    }
+
+    function useCachedDaily() {
+      try {
+        var raw = localStorage.getItem('kn_daily_cache');
+        if (!raw) return false;
+        var c = JSON.parse(raw);
+        if (!c || !c.data || !c.data.date) return false;
+        dailyState.data = c.data;
+        dailyState.loaded = true;
+        dailyState.fromCache = true;
+        buildDailyPages();
+        showDailyCacheNote('网络不稳定，先展示 ' + c.data.date + ' 的缓存内容');
+        return true;
+      } catch(e) { return false; }
+    }
+
+    function scheduleDailyRefreshLater(ms) {
+      setTimeout(function() {
+        if ((dailyState.fromCache || !dailyState.loaded) && !dailyState.loading) {
+          fetchDailyData();
+        }
+      }, ms);
+    }
+
+    function handleDailyFailure(msg) {
+      if (useCachedDaily()) {
+        scheduleDailyRefreshLater(120000);   // 有缓存：先展示缓存，2 分钟后静默重试拉新
+      } else {
+        showDailyStatus(msg, true);          // 无缓存：提示 + 手动重试按钮
+        scheduleDailyRefreshLater(60000);    // 1 分钟后自动重试
+      }
+    }
+
     function fetchDailyData() {
       dailyState.loading = true;
       showDailyStatus('正在加载日报...');
@@ -2840,16 +2946,19 @@
           try {
             dailyState.data = JSON.parse(xhr.responseText);
             dailyState.loaded = true;
+            dailyState.fromCache = false;
+            saveDailyCache();
+            clearDailyCacheNote();
             buildDailyPages();
-          } catch(e) { showDailyStatus('日报数据格式错误，请明天再来'); }
+          } catch(e) { handleDailyFailure('日报数据格式错误，请明天再来'); }
         } else if (xhr.status === 0 || xhr.status === 404) {
-          showDailyStatus('今日日报暂未生成，请明天再来');
+          handleDailyFailure('今日日报暂未生成，请明天再来');
         } else {
-          showDailyStatus('加载失败，请检查网络连接');
+          handleDailyFailure('加载失败，请检查网络连接');
         }
       };
-      xhr.ontimeout = function() { dailyState.loading = false; showDailyStatus('加载超时，请检查网络', true); };
-      xhr.onerror  = function() { dailyState.loading = false; showDailyStatus('网络连接失败，请检查网络后重试', true); };
+      xhr.ontimeout = function() { dailyState.loading = false; handleDailyFailure('加载超时，请检查网络'); };
+      xhr.onerror  = function() { dailyState.loading = false; handleDailyFailure('网络连接失败，请检查网络后重试'); };
       xhr.send();
     }
 
