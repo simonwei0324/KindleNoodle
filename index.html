@@ -2358,20 +2358,43 @@
         var first = REFRESH_TIMES[0];
         return (24 * 60 - nowMins + first[0] * 60 + first[1]) * 60000 - now.getSeconds() * 1000 - now.getMilliseconds();
       }
+      /* 早间自愈重载：必须整份 index.html 已在手且体积正常才允许跳转。
+         小文件能下 ≠ 页面能下，所以不再用小体积探测；
+         失败一律保持当前页面并重试，绝不把可用的时钟换成浏览器错误页。 */
       function trySafeReload() {
-        var probed = false;
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', './data/daily.json?t=' + Date.now(), true);
-        xhr.timeout = 15000;
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState === 4 && xhr.status === 200 && !probed) {
-            probed = true;
-            location.reload();   // 探测到网络可用才整体重载，避免把页面重载成浏览器错误页
+        var MAX_ATTEMPTS = 3;
+        var MIN_CHARS = 150000;     // 正常首页约 16 万字符（189KB），门槛留 6% 余量，另加结尾标记判据
+        var attempt = 0;
+        function probe() {
+          attempt++;
+          var settled = false;
+          function fail() {
+            if (settled) return;
+            settled = true;
+            if (attempt < MAX_ATTEMPTS) { setTimeout(probe, 30000); }
           }
-        };
-        xhr.ontimeout = function() {};
-        xhr.onerror = function() {};
-        xhr.send();
+          try {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', './index.html?probe=' + Date.now(), true);
+            xhr.timeout = 20000;
+            xhr.onreadystatechange = function() {
+              if (xhr.readyState !== 4 || settled) return;
+              var body = xhr.responseText || '';
+              /* 双重判据：体积够大 + 结尾标记在位（全文 </html> 只出现一次，截断必然缺它） */
+              var complete = body.lastIndexOf('</html>') > body.length - 100;
+              if (xhr.status === 200 && body.length > MIN_CHARS && complete) {
+                settled = true;
+                location.reload();   // 整份页面已完整取回，重载几乎不可能失败
+              } else {
+                fail();
+              }
+            };
+            xhr.ontimeout = fail;
+            xhr.onerror = fail;
+            xhr.send();
+          } catch (e) { fail(); }
+        }
+        probe();
       }
       function scheduleNext() {
         setTimeout(function() {
