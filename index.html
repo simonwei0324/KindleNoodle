@@ -1672,14 +1672,20 @@
       } catch (e) {}
       try {
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', './data/daily.json?skew=' + Date.now(), true);   // 唯一 URL，避开任何缓存
+        xhr.open('GET', './data/daily.json?skew=' + Date.now(), true);
         xhr.timeout = 15000;
         xhr.onreadystatechange = function() {
           if (xhr.readyState !== 4) return;
-          var hdr = null;
-          try { hdr = xhr.getResponseHeader('Date'); } catch (e) {}
+          var hdr = null, age = 0;
+          try {
+            hdr = xhr.getResponseHeader('Date');
+            age = parseInt(xhr.getResponseHeader('Age'), 10);
+          } catch (e) {}
           if (!hdr) { return; }
-          var serverMs = Date.parse(hdr);
+          /* GitHub Pages 的 CDN 会把查询串一并吃掉（实测 age 持续累积），唯一 URL
+             并不能绕过缓存，Date 头最多可能旧 10 分钟（max-age=600）。必须加上
+             Age 才能还原成真正的服务器当前时间，否则会把时钟校偏 5~10 分钟。 */
+          var serverMs = Date.parse(hdr) + (isNaN(age) ? 0 : age * 1000);
           if (!serverMs) { return; }
           var skew = serverMs - Date.now();
           try {
