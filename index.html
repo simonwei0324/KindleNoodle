@@ -1574,9 +1574,10 @@
       return sum + lLeapDays(y);
     }
     var tzOffsetMs = 8 * 3600000;
+    var clockSkewMs = 0;          // 设备系统时钟偏差修正（由服务器 Date 头校准）
     var _lunarCache = { day: -1, label: '' };
 
-    function getLocalDate() { return new Date(Date.now() + tzOffsetMs); }
+    function getLocalDate() { return new Date(Date.now() + clockSkewMs + tzOffsetMs); }
 
     function toLunarLabel(date) {
       var y = date.getUTCFullYear(), mo = date.getUTCMonth(), d = date.getUTCDate();
@@ -1619,28 +1620,85 @@
       elLunar.textContent   = toLunarLabel(now);
     }
 
-    function fetchTimezone() {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', 'http://ip-api.com/json?fields=offset,city,lat,lon', true);
-      xhr.timeout = 5000;
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          try {
-            var data = JSON.parse(xhr.responseText);
-            if (typeof data.offset === 'number') {
-              tzOffsetMs = data.offset * 1000;
-              _lunarCache.day = -1;
-              updateClock();
-            }
-          } catch(e) {}
-        }
-      };
-      xhr.send();
-    }
+    /* 原代码会向 ip-api.com 求证时区并覆盖 tzOffsetMs，这里刻意去掉：
+       1) 该接口是纯 HTTP，HTTPS 页面会被浏览器按混合内容拦掉，本来就时通时不通；
+       2) 即便放行，返回的 offset 取决于请求出口 IP 的归属地——一旦链路绕到境外
+          节点，offset 会变成 0~2 时区，时钟立刻慢 6~8 小时，且直到下次刷新才恢复。
+       固定东八区是唯一稳定的做法。 */
 
     updateClock();
-    fetchTimezone();
-    setInterval(updateClock, 60000);
+
+    /* 自校正调度：对齐到整分钟边界触发，不再用固定 60000ms（会累积漂移） */
+    function scheduleClockTick() {
+      var delay = 60000 - (Date.now() % 60000) + 60;
+      setTimeout(function() {
+        updateClock();
+        scheduleClockTick();
+      }, delay);
+    }
+    scheduleClockTick();
+
+    /* 看门狗：每 10 秒核对一次显示值与真实时间，发现落后立刻补画 */
+    setInterval(function() {
+      var now = getLocalDate();
+      var hh = pad(now.getUTCHours());
+      var mm = pad(now.getUTCMinutes());
+      if (elHour.textContent !== hh || elMinute.textContent !== mm) { updateClock(); }
+    }, 10000);
+
+    /* 页面重新可见 / 被点击 / 获得焦点时立刻校时：Kindle 挂起页面后一恢复就对齐 */
+    function resyncClock() { updateClock(); }
+    if (document.addEventListener) {
+      document.addEventListener('visibilitychange', resyncClock, false);
+      document.addEventListener('click', resyncClock, false);
+      document.addEventListener('touchstart', resyncClock, false);
+      window.addEventListener('focus', resyncClock, false);
+      window.addEventListener('pageshow', resyncClock, false);
+    }
+
+    /* 设备时钟校准：Kindle 长期不联网时 RTC 会漂，页面读到的就是错的系统时间。
+       这里取一次同源响应的 Date 头与本地时间比对，偏差 ≥5 分钟且 ≤12 小时才采纳，
+       结果写入 localStorage，离线重开也能沿用；偏差正常则清零，绝不乱改。 */
+    (function initClockSkew() {
+      try {
+        var saved = localStorage.getItem('kn_skew');
+        if (saved) {
+          var o = JSON.parse(saved);
+          if (o && typeof o.v === 'number' && Math.abs(o.v) >= 300000 && Math.abs(o.v) <= 43200000) {
+            clockSkewMs = o.v;
+            updateClock();
+          }
+        }
+      } catch (e) {}
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', './data/daily.json?skew=' + Date.now(), true);   // 唯一 URL，避开任何缓存
+        xhr.timeout = 15000;
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState !== 4) return;
+          var hdr = null;
+          try { hdr = xhr.getResponseHeader('Date'); } catch (e) {}
+          if (!hdr) { return; }
+          var serverMs = Date.parse(hdr);
+          if (!serverMs) { return; }
+          var skew = serverMs - Date.now();
+          try {
+            if (Math.abs(skew) >= 300000 && Math.abs(skew) <= 43200000) {
+              clockSkewMs = skew;
+              localStorage.setItem('kn_skew', JSON.stringify({ v: skew, t: Date.now() }));
+            } else {
+              clockSkewMs = 0;
+              localStorage.removeItem('kn_skew');
+            }
+          } catch (e) { clockSkewMs = (Math.abs(skew) >= 300000) ? skew : 0; }
+          _lunarCache.day = -1;
+          updateClock();
+        };
+        xhr.ontimeout = function() {};
+        xhr.onerror = function() {};
+        xhr.send();
+      } catch (e) {}
+    })();
 
     /* ── Noodle Timer ───────────────────────────────────── */
     var noodleState = 0;
