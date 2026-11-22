@@ -140,6 +140,25 @@
     /* 版本徽标：一眼确认 Kindle 跑的是哪一版、校准是否生效 */
     .ver-badge { font-size: 16px; color: #c0c0c0; text-align: right; padding-top: 6px; -webkit-flex-shrink: 0; flex-shrink: 0; }
 
+    /* ── Weather Bar ──────────────────────────────────── */
+    .weather-bar {
+      height: 112px; -webkit-flex-shrink: 0; flex-shrink: 0; margin-bottom: 12px;
+      background: #fff; border-radius: 56px;
+      border-top: 1px solid #DDDDDD; border-left: 1px solid #DDDDDD;
+      border-right: 1px solid #DDDDDD; border-bottom: 3px solid #DDDDDD;
+      padding: 0 36px; overflow: hidden;
+      display: -webkit-box; display: -webkit-flex; display: flex;
+      -webkit-box-align: center; -webkit-align-items: center; align-items: center;
+    }
+    .wx-icon { width: 62px; height: 62px; margin-right: 22px; -webkit-flex-shrink: 0; flex-shrink: 0; }
+    .wx-icon svg { width: 62px; height: 62px; display: block; }
+    .wx-main { -webkit-box-flex: 1; -webkit-flex: 1; flex: 1; min-width: 0; }
+    .wx-city { font-size: 26px; font-weight: 500; color: #000; line-height: 1.2; }
+    .wx-sub  { font-size: 17px; color: #ABABAB; line-height: 1.3; margin-top: 4px; white-space: nowrap; overflow: hidden; }
+    .wx-right { text-align: right; -webkit-flex-shrink: 0; flex-shrink: 0; }
+    .wx-temp { font-size: 46px; font-weight: bold; color: #000; line-height: 1; }
+    .wx-range { font-size: 17px; color: #ABABAB; line-height: 1.3; margin-top: 4px; white-space: nowrap; }
+
     /* ── Nav Bar ───────────────────────────────────────── */
     #bottom-nav, #daily-nav {
       display: -webkit-box; display: -webkit-flex; display: flex;
@@ -1099,7 +1118,21 @@
               <div class="quote-body" id="quote-body"></div>
             </div>
             <div class="quote-author" id="quote-author"></div>
-            <div class="ver-badge" id="ver-badge">v1122</div>
+            <div class="ver-badge" id="ver-badge">v1122w</div>
+          </div>
+        </div>
+
+        <!-- 天气条：数据源 Open-Meteo（免 key、HTTPS、CORS 开放）。经纬度写死，
+             刻意不做 IP 定位——时区那次就是被「出口 IP 归属地」坑的 -->
+        <div class="weather-bar">
+          <div class="wx-icon" id="wx-icon"><svg viewBox="0 0 64 64" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 44h28a11 11 0 0 0 .8-21.9A14 14 0 0 0 20.4 26.6 9.2 9.2 0 0 0 18 44z"/></svg></div>
+          <div class="wx-main">
+            <div class="wx-city" id="wx-city">上海</div>
+            <div class="wx-sub" id="wx-sub">正在获取天气…</div>
+          </div>
+          <div class="wx-right">
+            <div class="wx-temp" id="wx-temp">--°</div>
+            <div class="wx-range" id="wx-range">今日 --° / --°</div>
           </div>
         </div>
       </div>
@@ -1628,7 +1661,7 @@
     function setVerBadge() {
       var el = document.getElementById('ver-badge');
       if (!el) { return; }
-      var t = 'v1122';
+      var t = 'v1122w';
       if (clockSkewMs !== 0) {
         var mins = Math.round(Math.abs(clockSkewMs) / 60000);
         t += ' · 校准' + (clockSkewMs > 0 ? '+' : '-') + (mins >= 60 ? (Math.round(mins / 6) / 10) + '时' : mins + '分');
@@ -1722,6 +1755,106 @@
         xhr.onerror = function() {};
         xhr.send();
       } catch (e) {}
+    })();
+
+    /* ── Weather（Open-Meteo，免 key、HTTPS、CORS 开放）────
+       位置写死上海：绝不做 IP 定位，时区那次就是被出口 IP 归属地坑的。
+       只在白天刷新、只在数值真变化时写 DOM —— E-ink 每次写入都可能整屏闪一下。 */
+    var WX_CITY = '上海';
+    var WX_LAT  = 31.23;
+    var WX_LON  = 121.47;
+    var WX_KEY  = 'kn_weather';
+    var wxFp    = '';
+
+    function wxCond(code) {
+      if (code === 0) return '晴';
+      if (code === 1) return '晴间多云';
+      if (code === 2) return '多云';
+      if (code === 3) return '阴';
+      if (code === 45 || code === 48) return '雾';
+      if (code >= 51 && code <= 57) return '毛毛雨';
+      if (code >= 61 && code <= 67) return '雨';
+      if (code >= 71 && code <= 77) return '雪';
+      if (code >= 80 && code <= 82) return '阵雨';
+      if (code === 85 || code === 86) return '阵雪';
+      if (code >= 95) return '雷阵雨';
+      return '多云';
+    }
+
+    /* 单色线条图标：PW3 是 16 级灰度，线条比填色干净得多 */
+    function wxIcon(code) {
+      var h = '<svg viewBox="0 0 64 64" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">';
+      var cloud = '<path d="M18 44h28a11 11 0 0 0 .8-21.9A14 14 0 0 0 20.4 26.6 9.2 9.2 0 0 0 18 44z"/>';
+      if (code === 0 || code === 1) {
+        h += '<circle cx="32" cy="32" r="11"/><path d="M32 8v7M32 49v7M8 32h7M49 32h7M15 15l5 5M44 44l5 5M49 15l-5 5M20 44l-5 5"/>';
+      } else if (code === 45 || code === 48) {
+        h += '<path d="M14 24h36M18 35h28M14 46h36"/>';
+      } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
+        h += cloud.replace('y="44"', 'y="40"').replace('26.6', '22.6') + '<path d="M23 48l-2 6M33 48l-2 6M43 48l-2 6"/>';
+      } else if ((code >= 71 && code <= 77) || code === 85 || code === 86) {
+        h += cloud.replace('y="44"', 'y="40"').replace('26.6', '22.6') + '<path d="M23 48v8M19.5 50l7 4M26.5 50l-7 4M41 48v8M37.5 50l7 4M44.5 50l-7 4"/>';
+      } else if (code >= 95) {
+        h += cloud.replace('y="44"', 'y="38"').replace('26.6', '20.6') + '<path d="M33 40l-7 11h7l-3 9 9-13h-7z"/>';
+      } else {
+        h += cloud;
+      }
+      return h + '</svg>';
+    }
+
+    function wxHM(ms) {
+      var d = new Date(ms + clockSkewMs + tzOffsetMs);
+      return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+    }
+
+    function renderWeather(w, stale) {
+      var fp = [w.code, w.temp, w.hi, w.lo, w.t, stale ? 1 : 0].join('|');
+      if (fp === wxFp) { return; }          // 值没变就不碰 DOM，避免无谓刷新
+      wxFp = fp;
+      document.getElementById('wx-icon').innerHTML = wxIcon(w.code);
+      document.getElementById('wx-city').textContent = WX_CITY;
+      document.getElementById('wx-sub').textContent  = wxCond(w.code) + ' · ' + wxHM(w.t) + (stale ? ' 缓存' : ' 更新');
+      document.getElementById('wx-temp').textContent = Math.round(w.temp) + '°';
+      document.getElementById('wx-range').textContent = '今日 ' + Math.round(w.lo) + '° / ' + Math.round(w.hi) + '°';
+    }
+
+    function fetchWeather() {
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + WX_LAT + '&longitude=' + WX_LON
+              + '&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min'
+              + '&timezone=Asia%2FShanghai&forecast_days=1';
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4 || xhr.status !== 200) { return; }
+        var w = null;
+        try {
+          var d = JSON.parse(xhr.responseText);
+          if (!d || !d.current || !d.daily || !d.daily.temperature_2m_max) { return; }
+          w = {
+            code: d.current.weather_code,
+            temp: d.current.temperature_2m,
+            hi:   d.daily.temperature_2m_max[0],
+            lo:   d.daily.temperature_2m_min[0],
+            t:    Date.now()
+          };
+          if (typeof w.temp !== 'number' || typeof w.hi !== 'number' || typeof w.lo !== 'number') { return; }
+        } catch (e) { return; }
+        try { localStorage.setItem(WX_KEY, JSON.stringify(w)); } catch (e) {}
+        renderWeather(w, false);
+      };
+      xhr.onerror = function() {};     // 失败就保留缓存值，不弹错、不空白
+      xhr.send();
+    }
+
+    (function initWeather() {
+      try {
+        var c = JSON.parse(localStorage.getItem(WX_KEY) || 'null');
+        if (c && typeof c.temp === 'number') { renderWeather(c, true); }
+      } catch (e) {}
+      fetchWeather();
+      setInterval(function() {
+        var h = getLocalDate().getUTCHours();
+        if (h >= 6 && h < 22) { fetchWeather(); }   // 夜间不请求，省电也省流量
+      }, 1800000);
     })();
 
     /* ── Noodle Timer ───────────────────────────────────── */
@@ -2367,19 +2500,54 @@
 
     var quoteShown = false;
 
+    var QUOTE_SIZES = [30, 28, 26, 24, 22, 20, 18, 16];
+
+    /* 语录取景：先按字数算一档保守字号（不依赖布局，页面刚加载时也算得准），
+       再按真实高度往下兜底收一档。历史坑：
+       ① 用 offsetHeight 比较 → .quote-body 带 overflow:hidden，高度被父容器夹死，
+          永远等于可视高度，循环一次都不触发；
+       ② 改成 scrollHeight 后又栽在「测量时机」上 —— 页面刚加载时布局还没稳定，
+          量出来的可用高度偏大，字号没缩小，等布局定下来文字就溢出了。
+          所以必须「字数预判 + 延迟复测」两条腿走路。 */
+    function fitQuote() {
+      var bodyEl = document.getElementById('quote-body');
+      if (!bodyEl) { return; }
+      var txt = bodyEl.textContent || '';
+      if (!txt) { return; }
+      var wrapEl = bodyEl.parentNode;
+      var avail = wrapEl.clientHeight - 16;   // 减去 .quote-body-wrap 的 padding-bottom
+      if (avail < 60) { avail = 150; }        // 布局未稳定时用保守值，宁可小一号
+
+      var idx = QUOTE_SIZES.length - 1;
+      for (var i = 0; i < QUOTE_SIZES.length; i++) {
+        var s = QUOTE_SIZES[i];
+        var cpl = Math.floor(301 / s);        // 卡片内容宽 301px，中文方块字近似
+        if (cpl < 1) { cpl = 1; }
+        var lines = Math.ceil(txt.length / cpl);
+        if (lines * s * 1.4 <= avail) { idx = i; break; }
+      }
+      bodyEl.style.fontSize = QUOTE_SIZES[idx] + 'px';
+      // 真实高度兜底：估算偏乐观时再收一档，只缩不放
+      for (var j = idx; j < QUOTE_SIZES.length; j++) {
+        bodyEl.style.fontSize = QUOTE_SIZES[j] + 'px';
+        if (bodyEl.offsetHeight <= avail) { break; }
+      }
+    }
+
     function setQuote(text, author) {
       quoteShown = true;
       var bodyEl = document.getElementById('quote-body');
-      var wrapEl = bodyEl.parentNode;
       var authorEl = document.getElementById('quote-author');
-      bodyEl.style.fontSize = '30px';
       bodyEl.textContent = text;
-      var size = 30;
-      while (bodyEl.offsetHeight > wrapEl.offsetHeight && size > 18) {
-        size -= 2;
-        bodyEl.style.fontSize = size + 'px';
-      }
       authorEl.textContent = author ? '- ' + author : '';
+      fitQuote();
+      setTimeout(fitQuote, 400);      // 布局稳定后再校一次
+      setTimeout(fitQuote, 1500);     // Kindle 慢，再补一次
+    }
+
+    if (window.addEventListener) {
+      window.addEventListener('resize', fitQuote, false);
+      window.addEventListener('pageshow', fitQuote, false);
     }
 
     function useFallbackQuote() {
