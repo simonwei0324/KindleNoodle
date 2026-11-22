@@ -137,6 +137,8 @@
       line-height: 1.4; overflow: hidden;
     }
     .quote-author { font-size: 22px; color: #ababab; text-align: right; -webkit-flex-shrink: 0; flex-shrink: 0; }
+    /* 版本徽标：一眼确认 Kindle 跑的是哪一版、校准是否生效 */
+    .ver-badge { font-size: 16px; color: #c0c0c0; text-align: right; padding-top: 6px; -webkit-flex-shrink: 0; flex-shrink: 0; }
 
     /* ── Nav Bar ───────────────────────────────────────── */
     #bottom-nav, #daily-nav {
@@ -1097,6 +1099,7 @@
               <div class="quote-body" id="quote-body"></div>
             </div>
             <div class="quote-author" id="quote-author"></div>
+            <div class="ver-badge" id="ver-badge">v1122</div>
           </div>
         </div>
       </div>
@@ -1618,6 +1621,21 @@
       elWeekday.textContent = WEEKDAYS[now.getUTCDay()] + ' ' + MONTHS[now.getUTCMonth()];
       elDay.textContent     = pad(now.getUTCDate());
       elLunar.textContent   = toLunarLabel(now);
+      setVerBadge();
+    }
+
+    /* 版本徽标文案：v1122 = 2026-11-22 版；后面缀校准状态，方便远程排查 */
+    function setVerBadge() {
+      var el = document.getElementById('ver-badge');
+      if (!el) { return; }
+      var t = 'v1122';
+      if (clockSkewMs !== 0) {
+        var mins = Math.round(Math.abs(clockSkewMs) / 60000);
+        t += ' · 校准' + (clockSkewMs > 0 ? '+' : '-') + (mins >= 60 ? (Math.round(mins / 6) / 10) + '时' : mins + '分');
+      } else {
+        t += ' · 校准:无';
+      }
+      el.textContent = t;
     }
 
     /* 原代码会向 ip-api.com 求证时区并覆盖 tzOffsetMs，这里刻意去掉：
