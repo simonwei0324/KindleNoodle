@@ -1,0 +1,160 @@
+{
+  "date": "2026-11-28",
+  "generatedAt": "2026-11-28T00:00:08.898Z",
+  "windowStart": "2026-11-27T00:00:00.000Z",
+  "windowEnd": "2026-11-28T00:00:00.000Z",
+  "links": {
+    "aihot": "https://aihot.news/daily/2026-11-28"
+  },
+  "attribution": {
+    "name": "AIHOT",
+    "url": "https://aihot.news/daily/2026-11-28"
+  },
+  "lead": {
+    "title": "实测支付宝 SkillPay：手把手教你怎么把 Skill 挂上去卖钱",
+    "leadParagraph": "作者完整实测支付宝 SkillPay 平台的 Skill 变现流程，该平台7月上线，支持买断和订阅两种售卖模式。买断制将 Skill 完整内容交付本地，订阅制把 Skill 保留在云端沙盒中、Agent 看不到明文；买断定价 0.01-50 元，订阅按周月季度收费上限 50 元，免费试用最低 5 次。"
+  },
+  "sections": [
+    {
+      "label": "行业动态",
+      "items": [
+        {
+          "id": "l9md8ugx8e2zlm5g1tuqthmaw",
+          "title": "OpenBMB 点评 InternLM 基于 MiniCPM-o 4.5 打造的 Sage-Interaction",
+          "summary": "OpenBMB 转发并点评上海人工智能实验室 InternLM 团队发布的开源全双工语音视频模型 Sage-Interaction，该模型基于 MiniCPM-o 4.5 构建。OpenBMB 称赞其边说边听、在不打断对话的情况下把复杂任务交给后端模型，是迈向更自然 AI 交互的一步，并向 InternLM 团队致意。",
+          "source": {
+            "id": "x-account-openbmb",
+            "name": "X：面壁智能 OpenBMB (@OpenBMB)"
+          },
+          "links": {
+            "aihot": "https://aihot.news/items/l9md8ugx8e2zlm5g1tuqthmaw",
+            "original": "https://x.com/OpenBMB/status/2126308118741323853"
+          },
+          "attribution": {
+            "name": "AIHOT",
+            "url": "https://aihot.news/items/l9md8ugx8e2zlm5g1tuqthmaw"
+          },
+          "sourceName": "X：面壁智能 OpenBMB (@OpenBMB)",
+          "sourceUrl": "https://x.com/OpenBMB/status/2126308118741323853"
+        }
+      ]
+    },
+    {
+      "label": "技巧与观点",
+      "items": [
+        {
+          "id": "cdkswjz368inpelrz3f52rekx",
+          "title": "实测支付宝 SkillPay：手把手教你怎么把 Skill 挂上去卖钱",
+          "summary": "作者完整实测支付宝 SkillPay 平台的 Skill 变现流程，该平台7月上线，支持买断和订阅两种售卖模式。买断制将 Skill 完整内容交付本地，订阅制把 Skill 保留在云端沙盒中、Agent 看不到明文；买断定价 0.01-50 元，订阅按周月季度收费上限 50 元，免费试用最低 5 次。",
+          "source": {
+            "id": "mp-account-kazike-digital-life",
+            "name": "公众号：数字生命卡兹克"
+          },
+          "links": {
+            "aihot": "https://aihot.news/items/cdkswjz368inpelrz3f52rekx",
+            "original": "https://mp.weixin.qq.com/s/x7Yt237NPL-sLvkUJlwESw"
+          },
+          "attribution": {
+            "name": "AIHOT",
+            "url": "https://aihot.news/items/cdkswjz368inpelrz3f52rekx"
+          },
+          "sourceName": "公众号：数字生命卡兹克",
+          "sourceUrl": "https://mp.weixin.qq.com/s/x7Yt237NPL-sLvkUJlwESw"
+        },
+        {
+          "id": "tiqf353lek6sib8ktn8uvc6nc",
+          "title": "Antigravity 实用技巧：在 GEMINI.md 加一句话让模型边干活边汇报",
+          "summary": "卡兹克分享一个 Antigravity 使用技巧，针对模型长时间闷头干活不输出信息的问题，只需在 GEMINI.md 中加一句话，要求动手前说要做什么、有发现、换方向、卡住或连干四五步时再说一句，即可获得类似 Claude 或 Codex 那种实时汇报进度的交互体验。",
+          "source": {
+            "id": "x-account-khazix0918",
+            "name": "X：卡兹克 (@Khazix0918)"
+          },
+          "links": {
+            "aihot": "https://aihot.news/items/tiqf353lek6sib8ktn8uvc6nc",
+            "original": "https://x.com/Khazix0918/status/2126294658431201385"
+          },
+          "attribution": {
+            "name": "AIHOT",
+            "url": "https://aihot.news/items/tiqf353lek6sib8ktn8uvc6nc"
+          },
+          "sourceName": "X：卡兹克 (@Khazix0918)",
+          "sourceUrl": "https://x.com/Khazix0918/status/2126294658431201385"
+        }
+      ]
+    }
+  ],
+  "flashes": [
+    {
+      "id": "v5fxjqr2vapkk9vn1j9a8ke96",
+      "title": "Dragos 调查称 MiniMax 在用户请求不存储的情况下仍打开提示词中的私有链接",
+      "source": {
+        "id": "x-account-rohanpaulai",
+        "name": "X：Rohan Paul (@rohanpaul_ai)"
+      },
+      "links": {
+        "aihot": "https://aihot.news/items/v5fxjqr2vapkk9vn1j9a8ke96",
+        "original": "https://x.com/rohanpaul_ai/status/2126214860421914884"
+      },
+      "publishedAt": "2026-11-27T07:21:40.000Z",
+      "attribution": {
+        "name": "AIHOT",
+        "url": "https://aihot.news/items/v5fxjqr2vapkk9vn1j9a8ke96"
+      },
+      "sourceName": "X：Rohan Paul (@rohanpaul_ai)",
+      "sourceUrl": "https://x.com/rohanpaul_ai/status/2126214860421914884"
+    }
+  ],
+  "highlights": [
+    {
+      "id": "tiqf353lek6sib8ktn8uvc6nc",
+      "title": "Antigravity 实用技巧：在 GEMINI.md 加一句话让模型边干活边汇报",
+      "summary": "卡兹克分享一个 Antigravity 使用技巧，针对模型长时间闷头干活不输出信息的问题，只需在 GEMINI.md 中加一句话，要求动手前说要做什么、有发现、换方向、卡住或连干四五步时再说一句，即可获得类似 Claude 或 Codex 那种实时汇报进度的交互体验。",
+      "source": {
+        "id": "x-account-khazix0918",
+        "name": "X：卡兹克 (@Khazix0918)"
+      },
+      "links": {
+        "aihot": "https://aihot.news/items/tiqf353lek6sib8ktn8uvc6nc",
+        "original": "https://x.com/Khazix0918/status/2126294658431201385"
+      },
+      "attribution": {
+        "name": "AIHOT",
+        "url": "https://aihot.news/items/tiqf353lek6sib8ktn8uvc6nc"
+      }
+    },
+    {
+      "id": "l9md8ugx8e2zlm5g1tuqthmaw",
+      "title": "OpenBMB 点评 InternLM 基于 MiniCPM-o 4.5 打造的 Sage-Interaction",
+      "summary": "OpenBMB 转发并点评上海人工智能实验室 InternLM 团队发布的开源全双工语音视频模型 Sage-Interaction，该模型基于 MiniCPM-o 4.5 构建。OpenBMB 称赞其边说边听、在不打断对话的情况下把复杂任务交给后端模型，是迈向更自然 AI 交互的一步，并向 InternLM 团队致意。",
+      "source": {
+        "id": "x-account-openbmb",
+        "name": "X：面壁智能 OpenBMB (@OpenBMB)"
+      },
+      "links": {
+        "aihot": "https://aihot.news/items/l9md8ugx8e2zlm5g1tuqthmaw",
+        "original": "https://x.com/OpenBMB/status/2126308118741323853"
+      },
+      "attribution": {
+        "name": "AIHOT",
+        "url": "https://aihot.news/items/l9md8ugx8e2zlm5g1tuqthmaw"
+      }
+    },
+    {
+      "id": "r9zsnuac5zbkuoz3zym9sp4kt",
+      "title": "Microsoft 向 60000 名员工提供自愿离职计划引发争议",
+      "summary": "Microsoft 于 10 月 26 日向 60000 名员工（约占公司 27%）提供自愿离职计划，Nadella 表示团队需重新配置以适应 AI 转型。Microsoft 声称并非裁员，预计少于 5% 会接受；本财年公司营收 3318 亿美元、营业利润 1552 亿美元均增长 18%，Nadella 薪资 9060 万美元，为中位数员工的 421 倍。",
+      "source": {
+        "id": "x-account-thexpin",
+        "name": "X：X.PIN (@thexpin)"
+      },
+      "links": {
+        "aihot": "https://aihot.news/items/r9zsnuac5zbkuoz3zym9sp4kt",
+        "original": "https://x.com/thexpin/status/2126254636999086464"
+      },
+      "attribution": {
+        "name": "AIHOT",
+        "url": "https://aihot.news/items/r9zsnuac5zbkuoz3zym9sp4kt"
+      }
+    }
+  ]
+}
